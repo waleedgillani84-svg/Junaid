@@ -1,0 +1,646 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hisaab Pro | Time Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; font-size: 14px; }
+        .premium-gradient { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(0, 0, 0, 0.05); }
+        .drawer-transition { transition: transform 0.25s ease-in-out; }
+        .modal-scale { transform: scale(0.98); opacity: 0; transition: all 0.2s ease-out; }
+        .modal-active .modal-scale { transform: scale(1); opacity: 1; }
+        .custom-scrollbar::-webkit-scrollbar { width: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        
+        #captureZone { 
+            position: fixed; 
+            left: -9999px; 
+            top: 0; 
+            width: 400px; 
+            background: #ffffff; 
+            padding: 0;
+            overflow: hidden;
+        }
+        .cap-header { background: #1e1b4b; color: white; padding: 25px 20px; text-align: center; }
+        .cap-body { padding: 25px 20px; background: #ffffff; }
+    </style>
+</head>
+<body class="pb-20 overflow-x-hidden">
+
+    <div id="captureZone">
+        <div class="cap-header">
+            <h2 id="capTitle" style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; margin: 0;">SHOP NAME</h2>
+            <p id="capSub" style="font-size: 14px; font-weight: 700; opacity: 0.8; margin-top: 5px;">0300-0000000</p>
+        </div>
+        <div id="capBodyContent" class="cap-body"></div>
+        <div style="background: #f8fafc; padding: 15px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="font-size: 10px; font-weight: 900; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Hisaab Pro Digital Ledger</p>
+        </div>
+    </div>
+
+    <div id="sideMenu" class="fixed inset-y-0 left-0 w-64 premium-gradient text-white z-[100] transform -translate-x-full drawer-transition shadow-2xl">
+        <div class="p-5 h-full flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black italic">HISAAB PRO</h2>
+                <button onclick="toggleMenu()" class="w-8 h-8 bg-white/10 rounded-full text-xs">✕</button>
+            </div>
+            <nav class="space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+                <button onclick="showWSDirectList()" class="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-all">
+                    <span class="text-base">💬</span>
+                    <p class="text-xs font-bold">WhatsApp Direct</p>
+                </button>
+                <button onclick="openTrash()" class="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-all">
+                    <span class="text-base">🗑️</span>
+                    <p class="text-xs font-bold">Trash (Delete Items)</p>
+                </button>
+                <div class="h-px bg-white/10 my-2"></div>
+                <button onclick="exportData()" class="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl transition-all">
+                    <span class="text-base">📤</span>
+                    <p class="text-xs font-bold">Backup Data</p>
+                </button>
+                <label class="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-all">
+                    <span class="text-base">📥</span>
+                    <p class="text-xs font-bold">Restore Data</p>
+                    <input type="file" class="hidden" accept=".txt" onchange="importData(event)">
+                </label>
+            </nav>
+            <button onclick="openSettings()" class="p-3 bg-white/5 rounded-xl flex justify-between items-center mt-4">
+                <span class="font-bold text-[10px] uppercase tracking-wider">Settings</span>
+                <span class="text-sm">⚙️</span>
+            </button>
+        </div>
+    </div>
+
+    <header class="glass sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleMenu()" class="p-1 text-xl">☰</button>
+            <div>
+                <h1 id="hShop" class="text-sm font-bold uppercase leading-none">SHOP NAME</h1>
+                <p id="hPh" class="text-[9px] font-bold text-slate-400 mt-1 uppercase">0300-0000000</p>
+            </div>
+        </div>
+        <button onclick="openCModal()" class="bg-indigo-600 text-white w-8 h-8 rounded-lg shadow-md flex items-center justify-center text-lg font-bold active:scale-90">+</button>
+    </header>
+
+    <main class="container mx-auto px-4 mt-4 max-w-md">
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="glass p-3 rounded-2xl border-l-4 border-indigo-500">
+                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Hold</p>
+                <h3 id="stHold" class="text-lg font-bold text-indigo-900 leading-none mt-1">0</h3>
+            </div>
+            <div class="glass p-3 rounded-2xl border-l-4 border-red-500">
+                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Receivable</p>
+                <h3 id="stBal" class="text-lg font-bold text-red-600 leading-none mt-1">0</h3>
+            </div>
+        </div>
+
+        <div class="space-y-2 mb-4">
+            <div class="relative">
+                <input type="text" id="mSearch" onkeyup="render()" placeholder="Name, Number, or Slip ID..." class="w-full bg-white p-3 pr-10 rounded-xl border border-slate-200 outline-none text-xs font-semibold shadow-sm">
+                <span class="absolute right-3 top-3 text-xs opacity-30">🔍</span>
+            </div>
+            <div class="flex gap-2">
+                <input type="date" id="mDateFilter" onchange="render()" class="flex-1 p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold outline-none">
+                <button onclick="resetHomeFilter()" class="bg-slate-200 text-slate-500 px-3 rounded-lg text-[9px] font-bold uppercase">Reset</button>
+            </div>
+        </div>
+
+        <div id="grid" class="space-y-3"></div>
+    </main>
+
+    <div id="ledgerOverlay" class="fixed inset-0 bg-[#f8fafc] z-[80] hidden flex flex-col">
+        <nav class="bg-white border-b p-3 flex justify-between items-center z-[81]">
+            <button onclick="closeLedger()" class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-full text-sm">←</button>
+            <div class="flex gap-1.5">
+                <button onclick="whatsappStatement()" class="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1">
+                    <span>💬</span> WA
+                </button>
+                <button onclick="capAccountSummary()" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">Shot</button>
+                <button onclick="generateDetailedPDF()" class="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">PDF</button>
+            </div>
+        </nav>
+        
+        <div class="px-4 pt-3 max-w-md mx-auto w-full">
+            <div class="premium-gradient p-4 rounded-2xl text-white shadow-lg mb-3">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h2 id="lName" class="text-lg font-bold italic leading-none">Client</h2>
+                        <p id="lPh" class="text-[8px] text-indigo-300 font-bold uppercase mt-1">Details</p>
+                    </div>
+                    <button onclick="editCustomer()" class="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold uppercase">Edit</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                        <p class="text-[7px] font-bold opacity-50 uppercase">Stock Hold</p>
+                        <h4 id="lHold" class="text-lg font-bold leading-none mt-1">0</h4>
+                    </div>
+                    <div class="bg-white/5 p-2 rounded-xl border border-white/5">
+                        <p class="text-[7px] font-bold opacity-50 uppercase">Balance</p>
+                        <h4 id="lBal" class="text-lg font-bold text-amber-300 leading-none mt-1">Rs 0</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="eContainer" class="flex-1 overflow-y-auto px-4 space-y-3 pb-24 max-w-md mx-auto w-full custom-scrollbar"></div>
+        
+        <div class="fixed bottom-4 left-0 right-0 px-4 flex justify-center z-[85]">
+            <button onclick="openEModal()" class="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold shadow-xl active:scale-95 transition-all text-xs uppercase tracking-wider">+ Add Slip</button>
+        </div>
+    </div>
+
+    <div id="backdrop" class="fixed inset-0 bg-slate-900/40 z-[200] hidden backdrop-blur-sm flex items-center justify-center p-4">
+        
+        <div id="eForm" class="bg-white rounded-2xl w-full max-w-xs p-5 hidden modal-scale">
+            <h2 class="text-xs font-black uppercase text-indigo-600 mb-4 italic">Slip Entry</h2>
+            <input type="hidden" id="editSlipId">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="col-span-2">
+                    <label class="text-[8px] font-bold text-slate-400 uppercase">Total Bill</label>
+                    <input type="number" id="eBill" class="w-full p-3 bg-slate-50 border rounded-xl font-bold" placeholder="0">
+                </div>
+                <div><label class="text-[8px] font-bold text-slate-400 uppercase">Sent</label><input type="number" id="eSent" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></div>
+                <div><label class="text-[8px] font-bold text-slate-400 uppercase">Back</label><input type="number" id="eBack" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></div>
+                <div><label class="text-[8px] font-bold text-slate-400 uppercase">Cash</label><input type="number" id="eCash" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></div>
+                <div><label class="text-[8px] font-bold text-slate-400 uppercase">Bank</label><input type="number" id="eBank" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></div>
+                <div class="col-span-2"><input type="text" id="eNote" class="w-full p-2 bg-slate-50 border rounded-lg text-[10px] font-bold" placeholder="Note/Details"></div>
+                <div class="col-span-2"><input type="date" id="eDate" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="saveEntry()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Save</button>
+                <button onclick="closeModal()" class="px-4 bg-slate-100 text-slate-400 rounded-xl font-bold">✕</button>
+            </div>
+        </div>
+
+        <div id="trashModal" class="bg-white rounded-2xl w-full max-w-md p-5 hidden modal-scale flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xs font-black uppercase text-red-600 italic">Trash</h2>
+                <button onclick="emptyTrash()" class="text-[8px] font-bold text-red-500 underline uppercase">Empty All</button>
+            </div>
+            <div id="trashList" class="overflow-y-auto space-y-2 flex-1 custom-scrollbar min-h-[100px]"></div>
+            <button onclick="closeModal()" class="w-full mt-4 bg-slate-100 py-3 rounded-xl text-[10px] font-bold uppercase text-slate-400">Close</button>
+        </div>
+
+        <div id="wsListModal" class="bg-white rounded-2xl w-full max-w-xs p-5 hidden modal-scale">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-xs font-black uppercase italic">Contacts</h2><button onclick="addContactPrompt()" class="bg-indigo-600 text-white w-6 h-6 rounded-full text-xs">+</button></div>
+            <div id="wsList" class="max-h-60 overflow-y-auto space-y-2"></div>
+            <button onclick="closeModal()" class="w-full mt-4 bg-slate-100 py-3 rounded-xl text-[10px] font-bold uppercase text-slate-400">Close</button>
+        </div>
+
+        <div id="cForm" class="bg-white rounded-2xl w-full max-w-xs p-5 hidden modal-scale">
+            <h2 class="text-xs font-black uppercase text-indigo-600 mb-4 italic text-center">Account Details</h2>
+            <input type="hidden" id="editClientId">
+            <div class="space-y-3 mb-5">
+                <input type="text" id="cName" placeholder="Customer Name" class="w-full p-3 bg-slate-50 border rounded-xl text-xs font-bold">
+                <input type="number" id="cPhone" placeholder="Phone (92...)" class="w-full p-3 bg-slate-50 border rounded-xl text-xs font-bold">
+            </div>
+            <button onclick="saveCustomer()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Save Account</button>
+            <button onclick="closeModal()" class="w-full mt-2 py-2 text-[10px] font-bold text-slate-400 uppercase">Cancel</button>
+        </div>
+
+        <div id="sForm" class="bg-white rounded-2xl w-full max-w-xs p-5 hidden modal-scale">
+            <h2 class="text-xs font-black uppercase text-center mb-4">Settings</h2>
+            <input type="text" id="sShop" class="w-full p-3 bg-slate-50 border rounded-xl text-xs font-bold mb-3" placeholder="Shop Name">
+            <input type="text" id="sPh" class="w-full p-3 bg-slate-50 border rounded-xl text-xs font-bold mb-5" placeholder="Shop Phone">
+            <button onclick="saveSettings()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Save Changes</button>
+        </div>
+
+        <div id="delModal" class="bg-white rounded-2xl w-full max-w-xs p-6 hidden modal-scale text-center">
+            <p class="text-[9px] font-bold uppercase text-slate-400 mb-2">Type below to move to trash:</p>
+            <p id="delTarget" class="text-red-600 font-black italic mb-4 text-sm"></p>
+            <input type="text" id="delInput" class="w-full p-2 border-2 border-slate-100 rounded-lg mb-4 text-center font-bold text-xs">
+            <div class="flex gap-2">
+                <button id="delBtn" class="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-bold text-[10px] uppercase">Move to Trash</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-100 py-2.5 rounded-lg font-bold text-slate-400 text-[10px] uppercase">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = {
+            customers: JSON.parse(localStorage.getItem('hp_u_c')) || [],
+            contacts: JSON.parse(localStorage.getItem('hp_u_w')) || [],
+            config: JSON.parse(localStorage.getItem('hp_u_cfg')) || { shop: "HISAAB PRO", ph: "0300-0000000" },
+            trash: JSON.parse(localStorage.getItem('hp_u_t')) || [] 
+        };
+        let activeId = null;
+
+        window.onload = () => { sync(); render(); };
+
+        function sync() {
+            localStorage.setItem('hp_u_c', JSON.stringify(db.customers));
+            localStorage.setItem('hp_u_w', JSON.stringify(db.contacts));
+            localStorage.setItem('hp_u_cfg', JSON.stringify(db.config));
+            localStorage.setItem('hp_u_t', JSON.stringify(db.trash));
+            document.querySelectorAll('#hShop, #capTitle').forEach(e => e.innerText = db.config.shop);
+            document.querySelectorAll('#hPh, #capSub').forEach(e => e.innerText = db.config.ph);
+        }
+
+        function toggleMenu() { document.getElementById('sideMenu').classList.toggle('-translate-x-full'); }
+        
+        function openModal(id) {
+            const b = document.getElementById('backdrop');
+            b.classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+            setTimeout(() => b.classList.add('modal-active'), 10);
+        }
+
+        function closeModal() {
+            const b = document.getElementById('backdrop');
+            b.classList.remove('modal-active');
+            setTimeout(() => { 
+                b.classList.add('hidden'); 
+                document.querySelectorAll('#backdrop > div').forEach(d => d.classList.add('hidden')); 
+            }, 100);
+        }
+
+        function getTotals(entries) {
+            let s=0, b=0, bill=0, paid=0;
+            entries.forEach(e => {
+                s += Number(e.sent || 0); b += Number(e.back || 0);
+                bill += Number(e.bill || 0); paid += (Number(e.cash || 0) + Number(e.bank || 0));
+            });
+            return { hold: s-b, balance: bill-paid };
+        }
+
+        function render() {
+            const grid = document.getElementById('grid');
+            const search = document.getElementById('mSearch').value.toLowerCase();
+            const dateF = document.getElementById('mDateFilter').value;
+            grid.innerHTML = "";
+            let th=0, tb=0;
+
+            const filtered = db.customers.filter(c => {
+                const textMatch = c.name.toLowerCase().includes(search) || c.phone.includes(search);
+                const slipMatch = search.length >= 2 && c.entries.some(e => e.id.toString().slice(-4).includes(search));
+                const dateMatch = !dateF || c.entries.some(e => e.date === dateF);
+                return (textMatch || slipMatch) && dateMatch;
+            });
+
+            filtered.forEach(c => {
+                const gS = getTotals(c.entries);
+                th += gS.hold; tb += gS.balance;
+                const el = document.createElement('div');
+                el.className = "glass p-3 rounded-2xl active:scale-95 transition-all relative";
+                el.onclick = () => viewLedger(c.id);
+                el.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm italic uppercase tracking-tighter text-slate-800">${c.name}</h4>
+                            <p class="text-[8px] text-slate-400 font-bold uppercase">${c.phone}</p>
+                        </div>
+                        <button onclick="confirmDelete('client', ${c.id}, '${c.phone}'); event.stopPropagation()" class="text-red-200 text-xs p-1">✕</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div class="bg-indigo-50/50 py-2 rounded-xl border border-indigo-100/50">
+                            <p class="text-[7px] font-bold text-indigo-400 uppercase">Hold</p>
+                            <p class="text-sm font-bold text-indigo-900">${gS.hold}</p>
+                        </div>
+                        <div class="bg-red-50/50 py-2 rounded-xl border border-red-100/50">
+                            <p class="text-[7px] font-bold text-red-400 uppercase">Bal</p>
+                            <p class="text-sm font-bold text-red-600">${gS.balance.toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(el);
+            });
+            document.getElementById('stHold').innerText = th;
+            document.getElementById('stBal').innerText = tb.toLocaleString();
+        }
+
+        function viewLedger(id) {
+            activeId = id;
+            const c = db.customers.find(x => x.id === id);
+            if(!c) return closeLedger();
+            const s = getTotals(c.entries);
+            document.getElementById('lName').innerText = c.name;
+            document.getElementById('lPh').innerText = c.phone;
+            document.getElementById('lHold').innerText = s.hold;
+            document.getElementById('lBal').innerText = `Rs ${s.balance.toLocaleString()}`;
+            
+            const container = document.getElementById('eContainer');
+            container.innerHTML = "";
+            c.entries.sort((a,b) => b.id - a.id).forEach(e => {
+                const bal = Number(e.bill) - (Number(e.cash) + Number(e.bank));
+                const el = document.createElement('div');
+                el.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative";
+                el.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="bg-slate-900 text-white px-2 py-0.5 rounded text-[7px] font-bold uppercase">#${e.id.toString().slice(-4)}</span>
+                        <div class="flex gap-3 text-[8px] font-bold">
+                            <button onclick="editEntry(${e.id})" class="text-indigo-500">EDIT</button>
+                            <button onclick="capSlip(${e.id})" class="text-emerald-500">SHOT</button>
+                            <button onclick="confirmDelete('entry', ${e.id}, '${e.id.toString().slice(-4)}')" class="text-red-300">✕</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 p-3 rounded-xl mb-3 border border-indigo-100/50">
+                        <div class="flex justify-between items-center">
+                            <p class="text-[8px] font-bold text-slate-400 uppercase">Total Bill</p>
+                            <h1 class="text-base font-black text-indigo-900 leading-none">Rs ${Number(e.bill).toLocaleString()}</h1>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div class="bg-slate-50 p-2 rounded-lg border text-center">
+                            <p class="text-[6px] font-bold text-slate-400 uppercase">Sent: ${e.sent}</p>
+                            <p class="text-[6px] font-bold text-slate-400 uppercase">Back: ${e.back}</p>
+                        </div>
+                        <div class="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100 text-center">
+                            <p class="text-[6px] font-bold text-emerald-500 uppercase">Cash: ${e.cash}</p>
+                            <p class="text-[6px] font-bold text-blue-500 uppercase">Bank: ${e.bank}</p>
+                        </div>
+                    </div>
+
+                    ${e.note ? `<div class="bg-amber-50/30 p-2 rounded-lg border border-dashed border-amber-100 mb-2"><p class="text-[8px] italic text-slate-500 font-bold leading-tight">${e.note}</p></div>` : ''}
+                    
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-50">
+                        <span class="text-[8px] font-bold text-slate-300 uppercase">${e.date} ${e.time ? '| ' + e.time : ''}</span>
+                        <div class="text-right">
+                           <span class="text-[7px] font-bold text-slate-400 uppercase mr-1">Remaining:</span>
+                           <span class="text-[10px] font-black text-red-600 leading-none">Rs ${bal.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+            document.getElementById('ledgerOverlay').classList.remove('hidden');
+        }
+
+        function saveEntry() {
+            const c = db.customers.find(x => x.id === activeId);
+            const editId = document.getElementById('editSlipId').value;
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const data = { 
+                sent: document.getElementById('eSent').value || 0, 
+                back: document.getElementById('eBack').value || 0, 
+                bill: document.getElementById('eBill').value || 0, 
+                cash: document.getElementById('eCash').value || 0, 
+                bank: document.getElementById('eBank').value || 0, 
+                note: document.getElementById('eNote').value || "", 
+                date: document.getElementById('eDate').value || now.toISOString().split('T')[0],
+                time: timeStr
+            };
+            if(editId) { Object.assign(c.entries.find(x => x.id == editId), data); } 
+            else { c.entries.push({ id: Date.now(), ...data }); }
+            sync(); closeModal(); viewLedger(activeId);
+        }
+
+        async function captureShot(filename) {
+            const area = document.getElementById('captureZone');
+            const canvas = await html2canvas(area, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true });
+            const imgData = canvas.toDataURL("image/jpeg", 0.8);
+            const link = document.createElement('a');
+            link.download = filename; link.href = imgData; link.click();
+        }
+
+        function capAccountSummary() {
+            const c = db.customers.find(x => x.id === activeId);
+            const s = getTotals(c.entries);
+            const body = document.getElementById('capBodyContent');
+            body.innerHTML = `
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <p style="font-size: 11px; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">Account Statement</p>
+                    <h3 style="font-size: 26px; font-weight: 900; color: #1e293b; margin: 0;">${c.name}</h3>
+                    <p style="font-size: 14px; font-weight: 700; color: #64748b; margin-top: 2px;">${c.phone}</p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 15px; padding: 20px; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Stock Hold</p>
+                        <p style="font-size: 24px; font-weight: 900; color: #1e1b4b; margin: 0;">${s.hold}</p>
+                    </div>
+                    <div style="background: #fff1f2; border: 2px solid #fecaca; border-radius: 15px; padding: 20px; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #f87171; text-transform: uppercase; margin-bottom: 5px;">Total Balance</p>
+                        <p style="font-size: 24px; font-weight: 900; color: #b91c1c; margin: 0;">Rs ${s.balance.toLocaleString()}</p>
+                    </div>
+                </div>
+                <p style="font-size: 10px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-top: 10px;">Dated: ${new Date().toLocaleString()}</p>
+            `;
+            captureShot(`${c.name}_Statement.jpg`);
+        }
+
+        function capSlip(sid) {
+            const c = db.customers.find(x => x.id === activeId);
+            const e = c.entries.find(x => x.id === sid);
+            const body = document.getElementById('capBodyContent');
+            const rem = Number(e.bill) - (Number(e.cash) + Number(e.bank));
+            
+            body.innerHTML = `
+                <div style="padding: 10px 0; border-bottom: 3px solid #f1f5f9; margin-bottom: 20px;">
+                    <p style="font-size: 11px; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Customer Name</p>
+                    <p style="font-size: 24px; font-weight: 900; color: #1e293b; margin: 0; line-height: 1.2;">${c.name}</p>
+                    <p style="font-size: 13px; font-weight: 600; color: #64748b; margin-top: 4px;">Slip: #${sid.toString().slice(-4)} | ${e.date} ${e.time || ''}</p>
+                </div>
+                <div style="background: #1e1b4b; padding: 25px 15px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
+                    <p style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Total Bill Amount</p>
+                    <h2 style="font-size: 36px; font-weight: 900; color: #ffffff; margin: 0;">Rs ${Number(e.bill).toLocaleString()}</h2>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div style="background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #f1f5f9; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Stock Sent</p>
+                        <p style="font-size: 20px; font-weight: 900; color: #1e293b;">${e.sent}</p>
+                    </div>
+                    <div style="background: #ffffff; padding: 15px; border-radius: 12px; border: 2px solid #f1f5f9; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Stock Back</p>
+                        <p style="font-size: 20px; font-weight: 900; color: #1e293b;">${e.back}</p>
+                    </div>
+                    <div style="background: #ecfdf5; padding: 15px; border-radius: 12px; border: 2px solid #10b981; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #059669; text-transform: uppercase; margin-bottom: 5px;">Cash Paid</p>
+                        <p style="font-size: 20px; font-weight: 900; color: #065f46;">${e.cash}</p>
+                    </div>
+                    <div style="background: #eff6ff; padding: 15px; border-radius: 12px; border: 2px solid #3b82f6; text-align: center;">
+                        <p style="font-size: 10px; font-weight: 800; color: #2563eb; text-transform: uppercase; margin-bottom: 5px;">Bank Paid</p>
+                        <p style="font-size: 20px; font-weight: 900; color: #1e40af;">${e.bank}</p>
+                    </div>
+                </div>
+                <div style="background: #fef2f2; padding: 20px; border-radius: 15px; border: 3px solid #ef4444; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <span style="font-size: 13px; font-weight: 900; color: #991b1b; text-transform: uppercase;">Remaining Bal</span>
+                    <span style="font-size: 24px; font-weight: 900; color: #b91c1c;">Rs ${rem.toLocaleString()}</span>
+                </div>
+                ${e.note ? `<div style="background: #fffbeb; padding: 12px; border-radius: 10px; border: 1.5px dashed #f59e0b;"><p style="font-size: 10px; font-weight: 800; color: #b45309; text-transform: uppercase; margin-bottom: 4px;">Note / Details:</p><p style="font-size: 14px; font-weight: 600; color: #451a03; line-height: 1.4; font-style: italic;">${e.note}</p></div>` : ''}
+            `;
+            captureShot(`Slip_${sid.toString().slice(-4)}.jpg`);
+        }
+
+        // --- UPDATED PDF GENERATION WITH FULL DETAILS ---
+        function generateDetailedPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const c = db.customers.find(x => x.id === activeId);
+            const s = getTotals(c.entries);
+
+            // Header Section
+            doc.setFontSize(22); 
+            doc.setTextColor(30, 27, 75);
+            doc.text(db.config.shop, 14, 20);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Contact: ${db.config.ph}`, 14, 26);
+            
+            doc.setDrawColor(200);
+            doc.line(14, 30, 196, 30);
+
+            // Client Info
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.text(`Customer: ${c.name}`, 14, 40);
+            doc.setFontSize(10);
+            doc.text(`Phone: ${c.phone}`, 14, 45);
+            doc.text(`Report Date: ${new Date().toLocaleString()}`, 14, 50);
+
+            // Summary Box (Visual like Shot)
+            doc.setFillColor(248, 250, 252);
+            doc.rect(14, 55, 182, 15, 'F');
+            doc.setFont(undefined, 'bold');
+            doc.text(`STOCK HOLD: ${s.hold}`, 20, 65);
+            doc.setTextColor(185, 28, 28);
+            doc.text(`TOTAL PAYABLE: Rs ${s.balance.toLocaleString()}`, 100, 65);
+            doc.setTextColor(0);
+            doc.setFont(undefined, 'normal');
+
+            // Detailed Table with all columns
+            doc.autoTable({
+                startY: 75,
+                head: [['Date/Time', 'ID', 'Sent', 'Back', 'Cash', 'Bank', 'Bill', 'Bal']],
+                body: c.entries.sort((a,b) => b.id - a.id).map(e => {
+                    const entryBal = Number(e.bill) - (Number(e.cash) + Number(e.bank));
+                    return [
+                        `${e.date}\n${e.time || ''}`, 
+                        `#${e.id.toString().slice(-4)}`, 
+                        e.sent, 
+                        e.back, 
+                        e.cash, 
+                        e.bank, 
+                        Number(e.bill).toLocaleString(),
+                        entryBal.toLocaleString()
+                    ];
+                }),
+                theme: 'grid',
+                headStyles: { fillColor: [30, 27, 75], fontSize: 8 },
+                styles: { fontSize: 8, valign: 'middle' },
+                columnStyles: {
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 15 },
+                    6: { fontStyle: 'bold' },
+                    7: { fontStyle: 'bold', textColor: [185, 28, 28] }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 7) {
+                        data.cell.text = 'Rs ' + data.cell.text;
+                    }
+                }
+            });
+
+            const pageCount = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Generated via Hisaab Pro Ledger - Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+            }
+
+            doc.save(`${c.name}_Full_Statement.pdf`);
+        }
+
+        // Standard Utility Functions
+        function saveCustomer() {
+            const n = document.getElementById('cName').value.trim();
+            const p = document.getElementById('cPhone').value.trim();
+            const editId = document.getElementById('editClientId').value;
+            if(!n || !p) return;
+            if(editId) { const c = db.customers.find(x => x.id == editId); c.name = n; c.phone = p; } 
+            else { db.customers.push({ id: Date.now(), name: n, phone: p, entries: [] }); }
+            sync(); closeModal(); render(); if(editId) viewLedger(activeId);
+        }
+        function openTrash() { if(document.getElementById('sideMenu').classList.contains('translate-x-0')) toggleMenu(); renderTrash(); openModal('trashModal'); }
+        function renderTrash() {
+            const list = document.getElementById('trashList');
+            list.innerHTML = "";
+            if (db.trash.length === 0) { list.innerHTML = "<p class='text-center text-[10px] font-bold text-slate-300 py-10 uppercase'>No Items in Trash</p>"; return; }
+            db.trash.forEach(item => {
+                const el = document.createElement('div');
+                el.className = "bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center";
+                el.innerHTML = `<div class='flex-1'><p class='font-bold text-[10px] uppercase'>${item.type}: ${item.data.name || item.data.id}</p></div>
+                <button onclick="restoreItem('${item.trashId}')" class='text-emerald-500 text-[8px] font-bold uppercase mr-2'>Restore</button>
+                <button onclick="permanentlyDelete('${item.trashId}')" class='text-red-500 text-[8px] font-bold uppercase'>Delete</button>`;
+                list.appendChild(el);
+            });
+        }
+        function showWSDirectList() {
+            const list = document.getElementById('wsList');
+            list.innerHTML = db.contacts.length ? db.contacts.map(c => `<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border"><div class="flex-1 cursor-pointer" onclick="window.open('https://wa.me/${c.num}', '_blank')"><p class="font-bold text-[10px] uppercase">${c.name}</p><p class="text-[8px] text-indigo-400">${c.num}</p></div></div>`).join('') : "<p class='py-8 text-center text-[8px] font-bold opacity-30 uppercase'>No Contacts</p>";
+            openModal('wsListModal');
+        }
+        function addContactPrompt() { const n = prompt("Name:"); const p = prompt("Phone (92...):"); if(n && p) { db.contacts.push({ id: Date.now(), name: n, num: p }); sync(); showWSDirectList(); } }
+        function closeLedger() { document.getElementById('ledgerOverlay').classList.add('hidden'); render(); }
+        function openCModal() { document.getElementById('editClientId').value = ""; document.getElementById('cName').value = ""; document.getElementById('cPhone').value = ""; openModal('cForm'); }
+        function openEModal() { document.getElementById('editSlipId').value = ""; document.querySelectorAll('#eForm input:not([type=\"hidden\"])').forEach(i => i.value = ""); document.getElementById('eDate').valueAsDate = new Date(); openModal('eForm'); }
+        function editEntry(sid) {
+            const e = db.customers.find(x => x.id === activeId).entries.find(x => x.id === sid);
+            document.getElementById('editSlipId').value = e.id;
+            document.getElementById('eSent').value = e.sent; document.getElementById('eBack').value = e.back;
+            document.getElementById('eBill').value = e.bill; document.getElementById('eCash').value = e.cash;
+            document.getElementById('eBank').value = e.bank; document.getElementById('eNote').value = e.note || "";
+            document.getElementById('eDate').value = e.date;
+            openModal('eForm');
+        }
+        function editCustomer() {
+            const c = db.customers.find(x => x.id === activeId);
+            document.getElementById('editClientId').value = c.id;
+            document.getElementById('cName').value = c.name; document.getElementById('cPhone').value = c.phone;
+            openModal('cForm');
+        }
+        function openSettings() { document.getElementById('sShop').value = db.config.shop; document.getElementById('sPh').value = db.config.ph; openModal('sForm'); toggleMenu(); }
+        function saveSettings() { db.config.shop = document.getElementById('sShop').value; db.config.ph = document.getElementById('sPh').value; sync(); closeModal(); }
+        function resetHomeFilter() { document.getElementById('mSearch').value = ""; document.getElementById('mDateFilter').value = ""; render(); }
+        function whatsappStatement() {
+            const c = db.customers.find(x => x.id === activeId);
+            const s = getTotals(c.entries);
+            const msg = `*${db.config.shop}*%0AClient: *${c.name}*%0AStock: *${s.hold}*%0ABalance: *Rs ${s.balance.toLocaleString()}*`;
+            window.open(`https://wa.me/${c.phone}?text=${msg}`, '_blank');
+        }
+        function exportData() {
+            const blob = new Blob([JSON.stringify(db)], {type:'text/plain'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = `Hisaab_Backup.txt`; a.click();
+        }
+        function importData(e) {
+            const r = new FileReader();
+            r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); db = d; sync(); render(); } catch(err) { alert("Invalid File"); } };
+            r.readAsText(e.target.files[0]);
+        }
+        function confirmDelete(type, id, val) {
+            document.getElementById('delTarget').innerText = val;
+            document.getElementById('delInput').value = "";
+            openModal('delModal');
+            document.getElementById('delBtn').onclick = () => {
+                if(document.getElementById('delInput').value === val) {
+                    if(type === 'client') {
+                        const target = db.customers.find(x => x.id === id);
+                        db.trash.push({ trashId: "t_"+Date.now(), type: 'client', data: target, deletedAt: Date.now() });
+                        db.customers = db.customers.filter(x => x.id !== id);
+                        closeLedger();
+                    } else if(type === 'entry') {
+                        const client = db.customers.find(x => x.id === activeId);
+                        const target = client.entries.find(x => x.id === id);
+                        db.trash.push({ trashId: "t_"+Date.now(), type: 'entry', data: target, parentId: client.id, parentName: client.name, deletedAt: Date.now() });
+                        client.entries = client.entries.filter(x => x.id !== id);
+                        viewLedger(activeId);
+                    }
+                    sync(); closeModal(); render();
+                }
+            };
+        }
+    </script>
+</body>
+</html>
